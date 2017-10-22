@@ -232,6 +232,10 @@ class Soil:
 
     def gen_muestreo(self):
 
+
+        ruta = str(self.dlg.txtruta.text())
+        QMessageBox.information(self.dlg, "Los archivos se guardan en:", ruta )
+
 		#Se leen los vectores que esten el la lista de capas cargada en QGis
         layers = self.iface.legendInterface().layers()
 
@@ -265,7 +269,6 @@ class Soil:
         selectedLayer.updateFields()
         selectedLayer.commitChanges()
 
-
         # definición de variables para estimar tamaño de muestra
         marg_error = self.dlg.marg_error.value()
         nivel_conf = self.dlg.nivel_conf.value()
@@ -293,63 +296,69 @@ class Soil:
         vias = selectedLayer
 
         #extracción de vías tipo 1, 2, 3, 4 (aptas para trasporte en automovil)
-        processing.runalg('qgis:extractbyattribute', vias, "TIPO_VIA", 5, "4" , "C:/Users/toshiba/Downloads/vias_aptas.shp")
-        vias_aptas = iface.addVectorLayer("C:/Users/toshiba/Downloads/vias_aptas.shp", "", "ogr")
+        processing.runalg('qgis:extractbyattribute', vias, "TIPO_VIA", 5, "4" , ruta+r"/vias_aptas.shp")
+        vias_aptas = iface.addVectorLayer(ruta+r"/vias_aptas.shp", "", "ogr")
 
         # Generar el buffer de la capa vias aptas
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, "C:/Users/toshiba/Downloads/buffer_vias500.shp")
-        #buffer_vias500 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias500.shp", "", "ogr")
+        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
+        #buffer_vias500 = iface.addVectorLayer(ruta+r"/buffer_vias500.shp", "", "ogr")
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, "C:/Users/toshiba/Downloads/buffer_vias1000.shp")
-        #buffer_vias1000 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias1000.shp", "", "ogr")
+        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
+        #buffer_vias1000 = iface.addVectorLayer(ruta+r"/buffer_vias1000.shp", "", "ogr")
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, "C:/Users/toshiba/Downloads/buffer_vias1500.shp")
-        #buffer_vias1500 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias1500.shp", "", "ogr")
+        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
+        #buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
 
-        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True, "C:/Users/toshiba/Downloads/buffer_vias2000.shp")
-        buffer_vias2000 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias2000.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
+        buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
   		#Selecciona la capa suelos (capa de suceptibilidad)
         selectedLayerIndex = self.dlg.capasuelos.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         suelos = selectedLayer
-        processing.runalg('qgis:extractbyattribute', suelos, "Codigo_Cla", 3, "2" , "C:/Users/toshiba/Downloads/suelos_sal.shp")
-        suelos_sal = iface.addVectorLayer("C:/Users/toshiba/Downloads/suelos_sal.shp", "", "ogr")
+        processing.runalg('qgis:extractbyattribute', suelos, "Codigo_Cla", 3, "2" , ruta+r"/suelos_sal.shp")
+        suelos_sal = iface.addVectorLayer(ruta+r"/suelos_sal.shp", "", "ogr")
 
         #Selección de zonas donde se tomarán las muestras
         #Intersección entre buffer 1km y suelos salinos
         overlayAnalyzer = QgsOverlayAnalyzer()
-        overlayAnalyzer.intersection(buffer_vias2000, suelos_sal, "C:/Users/toshiba/Downloads/area_muestreo.shp")
-        area_muestreo = iface.addVectorLayer("C:/Users/toshiba/Downloads/area_muestreo.shp", "", "ogr")
+        overlayAnalyzer.intersection(buffer_vias2000, suelos_sal, ruta+r"/area_muestreo.shp")
+        area_muestreo = iface.addVectorLayer(ruta+r"/area_muestreo.shp", "", "ogr")
 
         #Unir polígonos del área de muestreo (dissolve)
-        QgsGeometryAnalyzer().dissolve(area_muestreo,"C:/Users/toshiba/Downloads/diss.shp", False, -1 )
-        diss = iface.addVectorLayer("C:/Users/toshiba/Downloads/diss.shp", "", "ogr")
+        QgsGeometryAnalyzer().dissolve(area_muestreo,ruta+r"/diss.shp", False, -1 )
+        diss = iface.addVectorLayer(ruta+r"/diss.shp", "", "ogr")
 
         #Generación de sitios de muestreo
-        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 0, "C:/Users/toshiba/Downloads/sitios_muestreo.shp")
-        sitios_muestreo = iface.addVectorLayer("C:/Users/toshiba/Downloads/sitios_muestreo.shp", "", "ogr")
+        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 0, ruta+r"/sitios_muestreo.shp")
+        sitios_muestreo = iface.addVectorLayer(ruta+r"/sitios_muestreo.shp", "", "ogr")
 
         #buffer 30 metros de los sitios de muestreo para extraer por mascara
-        processing.runalg('qgis:fixeddistancebuffer', sitios_muestreo, 30, 5, True, "C:/Users/toshiba/Downloads/buffer_sitios30.shp")
-        buffer_sitios30 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_sitios30.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', sitios_muestreo, 30, 5, True, ruta+r"/buffer_sitios30.shp")
+        buffer_sitios30 = iface.addVectorLayer(ruta+r"/buffer_sitios30.shp", "", "ogr")
 
         #Generar mapa pendiente a partir del DEM
   		#Selecciona el DEM
         selectedLayerIndex = self.dlg.capacurvas.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         dem = selectedLayer
-        processing.runalg('gdalogr:slope', dem, 1, True, False,True, 1, "C:/Users/toshiba/Downloads/slope.tif")
-        slope = iface.addRasterLayer("C:/Users/toshiba/Downloads/slope.tif", "SLOPE")
+        path = processing.runalg('gdalogr:slope', dem, 1, True, False,True, 1, None)
+        slope = QgsRasterLayer(path['OUTPUT'],'slope')
+        QgsMapLayerRegistry.instance().addMapLayer(slope)
 
         #extraer por mascara slpoe - buffer 30m sitios de muestreo
+        path = processing.runalg('gdalogr:cliprasterbymasklayer',slope,buffer_sitios30,"0",False,True,True,5,0,1,1,1,False,0,False,"",None)
+        slope_sitios = QgsRasterLayer(path['OUTPUT'],'slope_sitios')
+        QgsMapLayerRegistry.instance().addMapLayer(slope_sitios)
 
+        #poligonizar el raster slope_sitios
+        processing.runalg('gdalogr:polygonize', slope_sitios, "pendiente", ruta+r"/slope_sitios_PG.shp")
+        slope_sitios_PG = iface.addVectorLayer(ruta+r"/slope_sitios_PG.shp", "", "ogr")
 
-
-        #migrar campo de un poligono (categoria de salinización) a la capa de puntos de muestreo
-        processing.runalg('saga:addpolygonattributestopoints', sitios_muestreo, area_muestreo, "Codigo_Cla", "C:/Users/toshiba/Downloads/puntos_clase.shp")
-        puntos_clase = iface.addVectorLayer("C:/Users/toshiba/Downloads/puntos_clase.shp", "", "ogr")
+        #actualizar la capa de sitios de muestreo, insertando una columna (pendiente) con el valor de la pendiente
+        processing.runalg('saga:addpolygonattributestopoints', sitios_muestreo, slope_sitios_PG, "Codigo_Cla", ruta+r"/puntos_pendiente.shp")
+        puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
 
 
 
@@ -357,10 +366,6 @@ class Soil:
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
 
 
-        #extraer slope por mascara
-        #processing.runalg('gdalogr:cliprasterbymasklayer', buffer_vias2000, 1, 5, True, "C:/Users/toshiba/Downloads/buffer_slope.tif")
-        #buffer_sitiosm = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_sitiosm.shp", "", "ogr")
-        #processing.runalg('gdalogr:cliprasterbymasklayer', slope, buffer_sitiosm, "none" , False, False, "not set", "C:/Users/toshiba/Downloads/slope_ext.tif")
 
 
 
@@ -389,9 +394,9 @@ class Soil:
 
 
 
-
-
 """
+
+
 mapcanvas = iface.mapCanvas()
 
 layers = mapcanvas.layers()
@@ -428,19 +433,6 @@ processing.runalg('qgis:extractbylocation', input, intersect, touches, overlaps,
 
 
 
-
-
-
-
-        #processing.runalg('qgis:polygonstolines', buffer_vias400, "C:/Users/toshiba/Downloads/contorno_400.shp")
-        #contorno_400 = iface.addVectorLayer("C:/Users/toshiba/Downloads/contorno_400.shp", "", "ogr")
-
-
-
-
-        #processing.runalg('qgis:symetricaldifference', contorno_200, contorno_400, "C:/Users/toshiba/Downloads/diff_800.shp")
-        #diff_800 = iface.addVectorLayer("C:/Users/toshiba/Downloads/diff_800.shp", "", "ogr")
-        #QMessageBox.information(self.dlg, "MENSAJE", "se realizo la diferencia: "+ str(type(diff_800)))
 
 
         #corte de los anillos internos
