@@ -299,34 +299,33 @@ class Soil:
         processing.runalg('qgis:extractbyattribute', vias, "TIPO_VIA", 5, "4" , ruta+r"/vias_aptas.shp")
         vias_aptas = iface.addVectorLayer(ruta+r"/vias_aptas.shp", "", "ogr")
 
-        # Generar el buffer de la capa vias aptas
+        # Generar el buffer de la capa vias aptas, update de los buffer y asignación del tiempo de desplazamiento
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
         buffer_vias500 = iface.addVectorLayer(ruta+r"/buffer_vias500.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',buffer_vias500,"tiempo",1,5,0,True, "35" , ruta+r"/t500.shp" )
+        t500 = iface.addVectorLayer(ruta+r"/t500.shp", "", "ogr")
 
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
         buffer_vias1000 = iface.addVectorLayer(ruta+r"/buffer_vias1000.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',buffer_vias1000,"tiempo",1,5,0,True, "70" , ruta+r"/t1000.shp" )
+        t1000 = iface.addVectorLayer(ruta+r"/t1000.shp", "", "ogr")
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
-        #buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
-
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
-        #buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
-
-
-        processing.runalg('qgis:mergevectorlayers', buffer_vias1000  , buffer_vias500,ruta+r"/diff.shp")
-        diff = iface.addVectorLayer(ruta+r"/diff", "", "ogr")
-
-
-
-        #processing.runalg('saga:mergelayers', layerList,True,True,destpath)
-
-
-        #processing.runalg('saga:cutshapeslayer', buffer_vias500, 1, buffer_vias1000,  ruta+r"/pol_cortado.prj")
-        #pol_cortado = iface.addVectorLayer(ruta+r"/pol_cortado.prj", "", "ogr")
-
-
-
+        up1000 = processing.runalg('saga:update', t1000 , t500,False, ruta+r"/up1000.shp")
+        up1000 = iface.addVectorLayer(ruta+r"/up1000.shp", "", "ogr")
 """
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
+        buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
+
+        up1500 = processing.runalg('saga:update', buffer_vias1500 , up1000,False, ruta+r"/up1500.shp")
+        up1500 = iface.addVectorLayer(ruta+r"/up1500.shp", "", "ogr")
+
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
+        buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
+
+        up2000 = processing.runalg('saga:update', buffer_vias2000 , up1500,False, ruta+r"/up2000.shp")
+        up2000 = iface.addVectorLayer(ruta+r"/up2000.shp", "", "ogr")
+
+        QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
 
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
@@ -380,10 +379,6 @@ class Soil:
         #determinar factor de ajuste por valor de pendiente
         processing.runalg('qgis:fieldcalculator',puntos_pendiente,"ajuste",0,10,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
         puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
-
-
-
-
 
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
 
