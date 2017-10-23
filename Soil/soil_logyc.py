@@ -300,17 +300,34 @@ class Soil:
         vias_aptas = iface.addVectorLayer(ruta+r"/vias_aptas.shp", "", "ogr")
 
         # Generar el buffer de la capa vias aptas
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
-        #buffer_vias500 = iface.addVectorLayer(ruta+r"/buffer_vias500.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
+        buffer_vias500 = iface.addVectorLayer(ruta+r"/buffer_vias500.shp", "", "ogr")
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
-        #buffer_vias1000 = iface.addVectorLayer(ruta+r"/buffer_vias1000.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
+        buffer_vias1000 = iface.addVectorLayer(ruta+r"/buffer_vias1000.shp", "", "ogr")
 
         #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
         #buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
 
-        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
-        buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
+        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
+        #buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
+
+
+        processing.runalg('qgis:mergevectorlayers', buffer_vias1000  , buffer_vias500,ruta+r"/diff.shp")
+        diff = iface.addVectorLayer(ruta+r"/diff", "", "ogr")
+
+
+
+        #processing.runalg('saga:mergelayers', layerList,True,True,destpath)
+
+
+        #processing.runalg('saga:cutshapeslayer', buffer_vias500, 1, buffer_vias1000,  ruta+r"/pol_cortado.prj")
+        #pol_cortado = iface.addVectorLayer(ruta+r"/pol_cortado.prj", "", "ogr")
+
+
+
+"""
+
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
   		#Selecciona la capa suelos (capa de suceptibilidad)
@@ -360,10 +377,33 @@ class Soil:
         processing.runalg('saga:addpolygonattributestopoints', sitios_muestreo, slope_sitios_PG, "Codigo_Cla", ruta+r"/puntos_pendiente.shp")
         puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
 
+        #determinar factor de ajuste por valor de pendiente
+        processing.runalg('qgis:fieldcalculator',puntos_pendiente,"ajuste",0,10,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
+        puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
+
+
 
 
 
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -377,24 +417,6 @@ class Soil:
         #layer.updateFields()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
 
 
 mapcanvas = iface.mapCanvas()
