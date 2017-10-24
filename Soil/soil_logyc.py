@@ -312,21 +312,22 @@ class Soil:
 
         up1000 = processing.runalg('saga:update', t1000 , t500,False, ruta+r"/up1000.shp")
         up1000 = iface.addVectorLayer(ruta+r"/up1000.shp", "", "ogr")
-"""
+
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
         buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',buffer_vias1500,"tiempo",1,5,0,True, "95" , ruta+r"/t1500.shp" )
+        t1500 = iface.addVectorLayer(ruta+r"/t1500.shp", "", "ogr")
 
-        up1500 = processing.runalg('saga:update', buffer_vias1500 , up1000,False, ruta+r"/up1500.shp")
+        up1500 = processing.runalg('saga:update', t1500 , up1000,False, ruta+r"/up1500.shp")
         up1500 = iface.addVectorLayer(ruta+r"/up1500.shp", "", "ogr")
 
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
         buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',buffer_vias2000,"tiempo",1,5,0,True, "120" , ruta+r"/t2000.shp" )
+        t2000 = iface.addVectorLayer(ruta+r"/t2000.shp", "", "ogr")
 
-        up2000 = processing.runalg('saga:update', buffer_vias2000 , up1500,False, ruta+r"/up2000.shp")
+        up2000 = processing.runalg('saga:update', t2000 , up1500,False, ruta+r"/up2000.shp")
         up2000 = iface.addVectorLayer(ruta+r"/up2000.shp", "", "ogr")
-
-        QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
-
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
   		#Selecciona la capa suelos (capa de suceptibilidad)
@@ -347,7 +348,7 @@ class Soil:
         diss = iface.addVectorLayer(ruta+r"/diss.shp", "", "ogr")
 
         #Generación de sitios de muestreo
-        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 0, ruta+r"/sitios_muestreo.shp")
+        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 1500, ruta+r"/sitios_muestreo.shp")
         sitios_muestreo = iface.addVectorLayer(ruta+r"/sitios_muestreo.shp", "", "ogr")
 
         #buffer 30 metros de los sitios de muestreo para extraer por mascara
@@ -377,13 +378,21 @@ class Soil:
         puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
 
         #determinar factor de ajuste por valor de pendiente
-        processing.runalg('qgis:fieldcalculator',puntos_pendiente,"ajuste",0,10,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
+        processing.runalg('qgis:fieldcalculator',puntos_pendiente,"ajuste",0,4,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
         puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
+
+        #actualizar la capa de sitios de muestreo, insertando una columna (tiempo) con el valor de tiempo de desplazamiento
+        processing.runalg('saga:addpolygonattributestopoints', puntos_pendiente1, up2000, "tiempo", ruta+r"/puntos_tiempo.shp")
+        puntos_tiempo = iface.addVectorLayer(ruta+r"/puntos_tiempo.shp", "", "ogr")
+
+        #determinar tiempo total de desplazamiento, ajustado por pendiente
+        processing.runalg('qgis:fieldcalculator',puntos_tiempo,"tiempo_ajustado",1,4,2,True, "ajuste * tiempo" , ruta+r"/sitos_de_muestreo.shp" )
+        sitios_de_muestreo = iface.addVectorLayer(ruta+r"/sitios_de_muestreo.shp", "", "ogr")
 
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
 
 
-
+"""
 
 
 
