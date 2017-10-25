@@ -1,7 +1,3 @@
-# pluguin-qgis-QS4
-#logica el pluguin
-
-
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
@@ -236,23 +232,23 @@ class Soil:
 
     def gen_muestreo(self):
 
-		#Se leen los vectores que esten el la lista de capas cargada en QGis
-        layers = self.iface.legendInterface().layers()
+        #la ruta de guardado de archivos, establecida en el "txtruta" se almacena en la variable "ruta"
+        ruta = str(self.dlg.txtruta.text())
+        QMessageBox.information(self.dlg, "Los archivos se guardan en:", ruta )
 
-		#Selecciona la capa de universo muestreal (área de estudio)
+		#Se leen las capas cargadas en la tabla de contenido del QGis
+        layers = self.iface.legendInterface().layers()
+		#Selecciona la capa de universo muestreal (área de estudio) cargada en el ComBox "capaarea"
         selectedLayerIndex = self.dlg.capaarea.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         area_est = selectedLayer
 
         #inicio de la edición
         selectedLayer.startEditing()
-
         #agregar nuevo campo
         selectedLayer.dataProvider().addAttributes([QgsField("Area_Ha", QVariant.Int)])
-
         #Cierra edicion
         selectedLayer.commitChanges()
-
         #Activa edicion
         selectedLayer.startEditing()
         idx = selectedLayer.fieldNameIndex( "Area_Ha" )
@@ -268,7 +264,6 @@ class Soil:
         #cierre de edición
         selectedLayer.updateFields()
         selectedLayer.commitChanges()
-
 
         # definición de variables para estimar tamaño de muestra
         marg_error = self.dlg.marg_error.value()
@@ -297,65 +292,103 @@ class Soil:
         vias = selectedLayer
 
         #extracción de vías tipo 1, 2, 3, 4 (aptas para trasporte en automovil)
-        processing.runalg('qgis:extractbyattribute', vias, "TIPO_VIA", 5, "4" , "C:/Users/toshiba/Downloads/vias_aptas.shp")
-        vias_aptas = iface.addVectorLayer("C:/Users/toshiba/Downloads/vias_aptas.shp", "", "ogr")
+        processing.runalg('qgis:extractbyattribute', vias, "TIPO_VIA", 5, "4" , ruta+r"/vias_aptas.shp")
+        vias_aptas = iface.addVectorLayer(ruta+r"/vias_aptas.shp", "", "ogr")
 
-        # Generar el buffer de la capa vias aptas
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, "C:/Users/toshiba/Downloads/buffer_vias500.shp")
-        #buffer_vias500 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias500.shp", "", "ogr")
+        # Generar el buffer de la capa vias aptas, update de los buffer y asignación del tiempo de desplazamiento
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias500.shp","tiempo",1,5,0,True, "35" , ruta+r"/t500.shp" )
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, "C:/Users/toshiba/Downloads/buffer_vias1000.shp")
-        #buffer_vias1000 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias1000.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias1000.shp","tiempo",1,5,0,True, "70" , ruta+r"/t1000.shp" )
 
-        #processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, "C:/Users/toshiba/Downloads/buffer_vias1500.shp")
-        #buffer_vias1500 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias1500.shp", "", "ogr")
+        processing.runalg('saga:update', ruta+r"/t1000.shp" , ruta+r"/t500.shp",False, ruta+r"/up1000.shp")
 
-        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True, "C:/Users/toshiba/Downloads/buffer_vias2000.shp")
-        buffer_vias2000 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_vias2000.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias1500.shp","tiempo",1,5,0,True, "95" , ruta+r"/t1500.shp" )
+
+        processing.runalg('saga:update', ruta+r"/t1500.shp" , ruta+r"/up1000.shp",False, ruta+r"/up1500.shp")
+
+        processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
+        buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias2000.shp","tiempo",1,5,0,True, "120" , ruta+r"/t2000.shp" )
+
+        up2000 = processing.runalg('saga:update', ruta+r"/t2000.shp" , ruta+r"/up1500.shp", False, ruta+r"/up2000.shp")
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
   		#Selecciona la capa suelos (capa de suceptibilidad)
         selectedLayerIndex = self.dlg.capasuelos.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         suelos = selectedLayer
-        processing.runalg('qgis:extractbyattribute', suelos, "Codigo_Cla", 3, "2" , "C:/Users/toshiba/Downloads/suelos_sal.shp")
-        suelos_sal = iface.addVectorLayer("C:/Users/toshiba/Downloads/suelos_sal.shp", "", "ogr")
+        processing.runalg('qgis:extractbyattribute', suelos, "Codigo_Cla", 3, "2" , ruta+r"/suelos_sal.shp")
+        suelos_sal = iface.addVectorLayer(ruta+r"/suelos_sal.shp", "", "ogr")
 
         #Selección de zonas donde se tomarán las muestras
         #Intersección entre buffer 1km y suelos salinos
         overlayAnalyzer = QgsOverlayAnalyzer()
-        overlayAnalyzer.intersection(buffer_vias2000, suelos_sal, "C:/Users/toshiba/Downloads/area_muestreo.shp")
-        area_muestreo = iface.addVectorLayer("C:/Users/toshiba/Downloads/area_muestreo.shp", "", "ogr")
+        overlayAnalyzer.intersection(buffer_vias2000, suelos_sal, ruta+r"/area_muestreo.shp")
+        area_muestreo = iface.addVectorLayer(ruta+r"/area_muestreo.shp", "", "ogr")
 
         #Unir polígonos del área de muestreo (dissolve)
-        QgsGeometryAnalyzer().dissolve(area_muestreo,"C:/Users/toshiba/Downloads/diss.shp", False, -1 )
-        diss = iface.addVectorLayer("C:/Users/toshiba/Downloads/diss.shp", "", "ogr")
+        QgsGeometryAnalyzer().dissolve(area_muestreo, ruta+r"/diss.shp", False, -1 )
 
         #Generación de sitios de muestreo
-        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 0, "C:/Users/toshiba/Downloads/sitios_muestreo.shp")
-        sitios_muestreo = iface.addVectorLayer("C:/Users/toshiba/Downloads/sitios_muestreo.shp", "", "ogr")
+        processing.runalg('qgis:randompointsinsidepolygonsfixed', ruta+r"/diss.shp", 0, muestra_int, 1500, ruta+r"/sitios_muestra.shp")
 
         #buffer 30 metros de los sitios de muestreo para extraer por mascara
-        processing.runalg('qgis:fixeddistancebuffer', sitios_muestreo, 30, 5, True, "C:/Users/toshiba/Downloads/buffer_sitios30.shp")
-        buffer_sitios30 = iface.addVectorLayer("C:/Users/toshiba/Downloads/buffer_sitios30.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', ruta+r"/sitios_muestra.shp", 30, 5, True, ruta+r"/buffer_sitios30.shp")
+        #buffer_sitios30 = iface.addVectorLayer(ruta+r"/buffer_sitios30.shp", "", "ogr")
 
         #Generar mapa pendiente a partir del DEM
   		#Selecciona el DEM
         selectedLayerIndex = self.dlg.capacurvas.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         dem = selectedLayer
-        processing.runalg('gdalogr:slope', dem, 1, True, False,True, 1, "C:/Users/toshiba/Downloads/slope.tif")
-        slope = iface.addRasterLayer("C:/Users/toshiba/Downloads/slope.tif", "SLOPE")
+        path = processing.runalg('gdalogr:slope', dem, 1, True, False,True, 1, None)
+        slope = QgsRasterLayer(path['OUTPUT'],'slope')
 
         #extraer por mascara slpoe - buffer 30m sitios de muestreo
+        path = processing.runalg('gdalogr:cliprasterbymasklayer',slope,ruta+r"/buffer_sitios30.shp","0",False,True,True,5,0,1,1,1,False,0,False,"",None)
+        slope_sitios = QgsRasterLayer(path['OUTPUT'],'slope_sitios')
+        #QgsMapLayerRegistry.instance().addMapLayer(slope_sitios)
 
+        #poligonizar el raster slope_sitios
+        processing.runalg('gdalogr:polygonize', slope_sitios, "pendiente", ruta+r"/slope_sitios_PG.shp")
+        #slope_sitios_PG = iface.addVectorLayer(ruta+r"/slope_sitios_PG.shp", "", "ogr")
 
+        #actualizar la capa de sitios de muestreo, insertando una columna (pendiente) con el valor de la pendiente
+        processing.runalg('saga:addpolygonattributestopoints', ruta+r"/sitios_muestra.shp", ruta+r"/slope_sitios_PG.shp", "Codigo_Cla", ruta+r"/puntos_pendiente.shp")
+        #puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
 
-        #migrar campo de un poligono (categoria de salinización) a la capa de puntos de muestreo
-        processing.runalg('saga:addpolygonattributestopoints', sitios_muestreo, area_muestreo, "Codigo_Cla", "C:/Users/toshiba/Downloads/puntos_clase.shp")
-        puntos_clase = iface.addVectorLayer("C:/Users/toshiba/Downloads/puntos_clase.shp", "", "ogr")
+        #determinar factor de ajuste por valor de pendiente
+        processing.runalg('qgis:fieldcalculator',ruta+r"/puntos_pendiente.shp","f_ajuste",0,4,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
+        #puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
 
+        #actualizar la capa de sitios de muestreo, insertando una columna (tiempo) con el valor de tiempo de desplazamiento
+        processing.runalg('saga:addpolygonattributestopoints', ruta+r"/puntos_pendiente1.shp", ruta+r"/up2000.shp", "tiempo", ruta+r"/puntos_tiempo.shp")
+        #puntos_tiempo = iface.addVectorLayer(ruta+r"/puntos_tiempo.shp", "", "ogr")
 
-
+        #determinar tiempo total de desplazamiento, ajustado por pendiente
+        processing.runalg('qgis:fieldcalculator', ruta+r"/puntos_tiempo.shp","t_ajustado",1,4,2,True, "f_ajuste * tiempo", ruta+r"/muestreo.shp" )
+        muestreo = iface.addVectorLayer(ruta+r"/muestreo.shp", "", "ogr")
 
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
+
+
+    def guardar_clicked(self):
+        self.guardar = QtGui.QFileDialog.getSaveFileName(self.dlg, 'Guardar Archivo',".", "ShapeFile (*.shp)")
+        self.dlg.save.setText(self.guardar)
+
+          # display file dialog for output shapefile
+        self.outShape.clear()
+        fileDialog = QFileDialog()
+        fileDialog.setConfirmOverwrite(False)
+        outName = fileDialog.getSaveFileName(self, "Output Shapefile",".", "Shapefiles (*.shp)")
+        outPath = QFileInfo(outName).absoluteFilePath()
+        if not outPath.upper().endswith(".SHP"):
+           outPath = outPath + ".shp"
+        if outName:
+            self.outShape.clear()
+        self.outShape.insert(outPath)
+
+
