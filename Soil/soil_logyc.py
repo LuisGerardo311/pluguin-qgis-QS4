@@ -232,27 +232,23 @@ class Soil:
 
     def gen_muestreo(self):
 
-
+        #la ruta de guardado de archivos, establecida en el "txtruta" se almacena en la variable "ruta"
         ruta = str(self.dlg.txtruta.text())
         QMessageBox.information(self.dlg, "Los archivos se guardan en:", ruta )
 
-		#Se leen los vectores que esten el la lista de capas cargada en QGis
+		#Se leen las capas cargadas en la tabla de contenido del QGis
         layers = self.iface.legendInterface().layers()
-
-		#Selecciona la capa de universo muestreal (área de estudio)
+		#Selecciona la capa de universo muestreal (área de estudio) cargada en el ComBox "capaarea"
         selectedLayerIndex = self.dlg.capaarea.currentIndex()
         selectedLayer = layers[selectedLayerIndex]
         area_est = selectedLayer
 
         #inicio de la edición
         selectedLayer.startEditing()
-
         #agregar nuevo campo
         selectedLayer.dataProvider().addAttributes([QgsField("Area_Ha", QVariant.Int)])
-
         #Cierra edicion
         selectedLayer.commitChanges()
-
         #Activa edicion
         selectedLayer.startEditing()
         idx = selectedLayer.fieldNameIndex( "Area_Ha" )
@@ -301,33 +297,23 @@ class Soil:
 
         # Generar el buffer de la capa vias aptas, update de los buffer y asignación del tiempo de desplazamiento
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 500, 5, True, ruta+r"/buffer_vias500.shp")
-        buffer_vias500 = iface.addVectorLayer(ruta+r"/buffer_vias500.shp", "", "ogr")
-        processing.runalg('qgis:fieldcalculator',buffer_vias500,"tiempo",1,5,0,True, "35" , ruta+r"/t500.shp" )
-        t500 = iface.addVectorLayer(ruta+r"/t500.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias500.shp","tiempo",1,5,0,True, "35" , ruta+r"/t500.shp" )
 
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1000, 5, True, ruta+r"/buffer_vias1000.shp")
-        buffer_vias1000 = iface.addVectorLayer(ruta+r"/buffer_vias1000.shp", "", "ogr")
-        processing.runalg('qgis:fieldcalculator',buffer_vias1000,"tiempo",1,5,0,True, "70" , ruta+r"/t1000.shp" )
-        t1000 = iface.addVectorLayer(ruta+r"/t1000.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias1000.shp","tiempo",1,5,0,True, "70" , ruta+r"/t1000.shp" )
 
-        up1000 = processing.runalg('saga:update', t1000 , t500,False, ruta+r"/up1000.shp")
-        up1000 = iface.addVectorLayer(ruta+r"/up1000.shp", "", "ogr")
+        processing.runalg('saga:update', ruta+r"/t1000.shp" , ruta+r"/t500.shp",False, ruta+r"/up1000.shp")
 
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 1500, 5, True, ruta+r"/buffer_vias1500.shp")
-        buffer_vias1500 = iface.addVectorLayer(ruta+r"/buffer_vias1500.shp", "", "ogr")
-        processing.runalg('qgis:fieldcalculator',buffer_vias1500,"tiempo",1,5,0,True, "95" , ruta+r"/t1500.shp" )
-        t1500 = iface.addVectorLayer(ruta+r"/t1500.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias1500.shp","tiempo",1,5,0,True, "95" , ruta+r"/t1500.shp" )
 
-        up1500 = processing.runalg('saga:update', t1500 , up1000,False, ruta+r"/up1500.shp")
-        up1500 = iface.addVectorLayer(ruta+r"/up1500.shp", "", "ogr")
+        processing.runalg('saga:update', ruta+r"/t1500.shp" , ruta+r"/up1000.shp",False, ruta+r"/up1500.shp")
 
         processing.runalg('qgis:fixeddistancebuffer', vias_aptas, 2000, 5, True,ruta+r"/buffer_vias2000.shp")
         buffer_vias2000 = iface.addVectorLayer(ruta+r"/buffer_vias2000.shp", "", "ogr")
-        processing.runalg('qgis:fieldcalculator',buffer_vias2000,"tiempo",1,5,0,True, "120" , ruta+r"/t2000.shp" )
-        t2000 = iface.addVectorLayer(ruta+r"/t2000.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/buffer_vias2000.shp","tiempo",1,5,0,True, "120" , ruta+r"/t2000.shp" )
 
-        up2000 = processing.runalg('saga:update', t2000 , up1500,False, ruta+r"/up2000.shp")
-        up2000 = iface.addVectorLayer(ruta+r"/up2000.shp", "", "ogr")
+        up2000 = processing.runalg('saga:update', ruta+r"/t2000.shp" , ruta+r"/up1500.shp", False, ruta+r"/up2000.shp")
 
         #extracción por atributos de suelos con media, alta y muy alta suceptibilidad
   		#Selecciona la capa suelos (capa de suceptibilidad)
@@ -344,16 +330,14 @@ class Soil:
         area_muestreo = iface.addVectorLayer(ruta+r"/area_muestreo.shp", "", "ogr")
 
         #Unir polígonos del área de muestreo (dissolve)
-        QgsGeometryAnalyzer().dissolve(area_muestreo,ruta+r"/diss.shp", False, -1 )
-        diss = iface.addVectorLayer(ruta+r"/diss.shp", "", "ogr")
+        QgsGeometryAnalyzer().dissolve(area_muestreo, ruta+r"/diss.shp", False, -1 )
 
         #Generación de sitios de muestreo
-        processing.runalg('qgis:randompointsinsidepolygonsfixed', diss, 0, muestra_int, 1500, ruta+r"/sitios_muestreo.shp")
-        sitios_muestreo = iface.addVectorLayer(ruta+r"/sitios_muestreo.shp", "", "ogr")
+        processing.runalg('qgis:randompointsinsidepolygonsfixed', ruta+r"/diss.shp", 0, muestra_int, 1500, ruta+r"/sitios_muestra.shp")
 
         #buffer 30 metros de los sitios de muestreo para extraer por mascara
-        processing.runalg('qgis:fixeddistancebuffer', sitios_muestreo, 30, 5, True, ruta+r"/buffer_sitios30.shp")
-        buffer_sitios30 = iface.addVectorLayer(ruta+r"/buffer_sitios30.shp", "", "ogr")
+        processing.runalg('qgis:fixeddistancebuffer', ruta+r"/sitios_muestra.shp", 30, 5, True, ruta+r"/buffer_sitios30.shp")
+        #buffer_sitios30 = iface.addVectorLayer(ruta+r"/buffer_sitios30.shp", "", "ogr")
 
         #Generar mapa pendiente a partir del DEM
   		#Selecciona el DEM
@@ -362,196 +346,34 @@ class Soil:
         dem = selectedLayer
         path = processing.runalg('gdalogr:slope', dem, 1, True, False,True, 1, None)
         slope = QgsRasterLayer(path['OUTPUT'],'slope')
-        QgsMapLayerRegistry.instance().addMapLayer(slope)
 
         #extraer por mascara slpoe - buffer 30m sitios de muestreo
-        path = processing.runalg('gdalogr:cliprasterbymasklayer',slope,buffer_sitios30,"0",False,True,True,5,0,1,1,1,False,0,False,"",None)
+        path = processing.runalg('gdalogr:cliprasterbymasklayer',slope,ruta+r"/buffer_sitios30.shp","0",False,True,True,5,0,1,1,1,False,0,False,"",None)
         slope_sitios = QgsRasterLayer(path['OUTPUT'],'slope_sitios')
-        QgsMapLayerRegistry.instance().addMapLayer(slope_sitios)
+        #QgsMapLayerRegistry.instance().addMapLayer(slope_sitios)
 
         #poligonizar el raster slope_sitios
         processing.runalg('gdalogr:polygonize', slope_sitios, "pendiente", ruta+r"/slope_sitios_PG.shp")
-        slope_sitios_PG = iface.addVectorLayer(ruta+r"/slope_sitios_PG.shp", "", "ogr")
+        #slope_sitios_PG = iface.addVectorLayer(ruta+r"/slope_sitios_PG.shp", "", "ogr")
 
         #actualizar la capa de sitios de muestreo, insertando una columna (pendiente) con el valor de la pendiente
-        processing.runalg('saga:addpolygonattributestopoints', sitios_muestreo, slope_sitios_PG, "Codigo_Cla", ruta+r"/puntos_pendiente.shp")
-        puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
+        processing.runalg('saga:addpolygonattributestopoints', ruta+r"/sitios_muestra.shp", ruta+r"/slope_sitios_PG.shp", "Codigo_Cla", ruta+r"/puntos_pendiente.shp")
+        #puntos_pendiente = iface.addVectorLayer(ruta+r"/puntos_pendiente.shp", "", "ogr")
 
         #determinar factor de ajuste por valor de pendiente
-        processing.runalg('qgis:fieldcalculator',puntos_pendiente,"ajuste",0,4,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
-        puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator',ruta+r"/puntos_pendiente.shp","f_ajuste",0,4,2,True, "((pendiente * 0.02)+1)" , ruta+r"/puntos_pendiente1.shp" )
+        #puntos_pendiente1 = iface.addVectorLayer(ruta+r"/puntos_pendiente1.shp", "", "ogr")
 
         #actualizar la capa de sitios de muestreo, insertando una columna (tiempo) con el valor de tiempo de desplazamiento
-        processing.runalg('saga:addpolygonattributestopoints', puntos_pendiente1, up2000, "tiempo", ruta+r"/puntos_tiempo.shp")
-        puntos_tiempo = iface.addVectorLayer(ruta+r"/puntos_tiempo.shp", "", "ogr")
+        processing.runalg('saga:addpolygonattributestopoints', ruta+r"/puntos_pendiente1.shp", ruta+r"/up2000.shp", "tiempo", ruta+r"/puntos_tiempo.shp")
+        #puntos_tiempo = iface.addVectorLayer(ruta+r"/puntos_tiempo.shp", "", "ogr")
 
         #determinar tiempo total de desplazamiento, ajustado por pendiente
-        processing.runalg('qgis:fieldcalculator',puntos_tiempo,"tiempo_ajustado",1,4,2,True, "ajuste * tiempo" , ruta+r"/sitos_de_muestreo.shp" )
-        sitios_de_muestreo = iface.addVectorLayer(ruta+r"/sitios_de_muestreo.shp", "", "ogr")
+        processing.runalg('qgis:fieldcalculator', ruta+r"/puntos_tiempo.shp","t_ajustado",1,4,2,True, "f_ajuste * tiempo", ruta+r"/muestreo.shp" )
+        muestreo = iface.addVectorLayer(ruta+r"/muestreo.shp", "", "ogr")
 
         QMessageBox.information(self.dlg, "MENSAJE", "todo corre bien hasta aqui" )
 
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        #agrerar campo "tiempo" a la tabla de atributos de la capa sitios de muestreo
-        #layer = iface.activeLayer()
-        #provider = layer.dataProvider()
-        #field = QgsField("tiempo", QVariant.Double)
-        #provider.addAttributes([field])
-        #layer.updateFields()
-
-
-
-
-mapcanvas = iface.mapCanvas()
-
-layers = mapcanvas.layers()
-
-feat_p9 = layers[0].getFeatures().next()
-feat_p10 = layers[1].getFeatures().next()
-
-diff1 = feat_p9.geometry().difference(feat_p10.geometry()).exportToWkt()
-diff2 = feat_p10.geometry().difference(feat_p9.geometry()).exportToWkt()
-
-print diff1
-print diff2
-#Interseccion de gemotrías
-import processing
-anillo_500 = diff1
-puntos = "C:/Users/toshiba/Downloads/sitios_muestreo.shp"
-processing.runalg('qgis:extractbylocation', puntos, anillo_500, , 1, 0)
-processing.runalg('qgis:extractbylocation', input, intersect, touches, overlaps, within, output)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        #corte de los anillos internos
-        processing.runalg('qgis:polygonstolines', buffer_vias400, "C:/Users/toshiba/Downloads/contorno_100.shp")
-        contorno_100 = iface.addVectorLayer("C:/Users/toshiba/Downloads/contorno_100.shp", "", "ogr")
-        QMessageBox.information(self.dlg, "diferencia simetrica", "contorno_100 ") #+ str(type(corte100)))
-
-
-        processing.runalg('saga:cutshapeslayer', buffer_vias500, 1, contorno_100,  "C:/Users/toshiba/Downloads/pol_cortado.shp")
-        contorno_100 = iface.addVectorLayer("C:/Users/toshiba/Downloads/pol_cortado.shp", "", "ogr")
-        QMessageBox.information(self.dlg, "poligono cortado", "poligono_cortado") #+ str(type(corte100)))
-
-
-        qgis:variabledistancebuffer
-
-  		#Generar el buffer de la capa vias
-
-        feat_p9 = buffer_vias500.getFeatures().next()
-        feat_p10 = buffer_vias400.getFeatures().next()
-
-        diff1 = feat_p9.geometry().difference(feat_p10.geometry())
-        QMessageBox.information(self.dlg,"MENSAJE", "Tipo de dato: " + str(type(diff1)))
-        #print [diff1]
-        #diff11 = QgsVectorLayer(diff1,"anillo100", "",  "")
-
-        #generación de puntos aleatorios
-        def createQgsPoints(coor):
-            return [QgsPoint(coor[i], coor[i + 1]) for i in range(0, len(coor), 2)]
-
-
-                QMessageBox.information(self.dlg,"MENSAJE", "Tipo de dato: " + str(type(vias)))
-        geometry = QgsVectorLayer().getGeometry()
-        geom = geometry(vias)
-        buffer = vias.buffer(100,-1)
-        CRS = vias.crs().postgisSrid()
-        URI = "Polygon?crs=epsg:"+str(CRS)+"&field=id:integer""&index=yes"
-        mem_layer = QgsVectorLayer(URI, "buffer_100", "memory")
-        QgsMapLayerRegistry.instance().addMapLayer(mem_layer)
-        mem_layer.startEditing()
-        feat2 = QgsFeature()
-        feat2.setGeometry(buffer)
-        feat2.setAttributes([1])
-        mem_layer.addFeature(feat2, True)
-        mem_layer.commitChanges()
-
-        layer =  QgsVectorLayer('Polygon', 'poly' , "memory")
-        pr = layer.dataProvider()
-        poly = QgsFeature()
-        #points = [point1,QgsPoint(50,150),point2,QgsPoint(100,50)]
-        # or points = [QgsPoint(50,50),QgsPoint(50,150),QgsPoint(100,150),QgsPoint(100,50)]
-        poly.setGeometry(QgsGeometry.fromPolygon([diff1]))
-        pr.addFeatures([poly])
-        layer.updateExtents()
-        QgsMapLayerRegistry.instance().addMapLayers([layer])
-
-        #processing.runandload("qgis:polygonintersections",buffer_vias200, buffer_vias100, "", "", "C:/Users/toshiba/Downloads"  )
-        #processing.runalg('', diferencia, diferencia.shp)
-        #diferencia = QgsVectorLayer("C:/Users/toshiba/Downloads ", "diferencia", "ogr" )
-
-        crs = QgsCoordinateReferenceSystem(crs, QgsCoordinateReferenceSystem.PostgisCrsId)
-        typeString = "%s?crs=%s" % (typeString, crs.authid())
-        layer = QgsVectorLayer(typeString, diff1, "memory")
-        layer.dataProvider().addAttributes([QgsField("name", QVariant.String)])
-        registry = QgsMapLayerRegistry.instance()
-        QgsMapLayerRegistry.instance().addMapLayer(layer)
-        return layer
-
-
-        #QgsMapLayerRegistry.instance().addMapLayer(diff1, True)
-
-        #iface.addVectorLayer(diff1, "diff1", "ogr")
-        #diff2 = feat_p10.geometry().difference(feat_p9.geometry()).exportToWkt()
-        #print diff1
-
-        #Interseccion de gemotrías
-        line = buffer_vias500
-        grid = buffer_vias400
-
-        for i in grid.getFeatures():
-            for l in line.getFeatures():
-                if i.geometry().intersects(l.geometry()):
-                # add the selection to the layer
-                    grid.select(i.id())
-
-        #seleccionar DEM
-		#Se leen los vectores que esten el la lista de capas cargada en QGis
-        layers = self.iface.legendInterface().layers()
-
-		#Selecciona la capa vial para hacer multibuffer (capa de vías)
-        selectedLayerIndex = self.dlg.capacurvas.currentIndex()
-        selectedLayer = layers[selectedLayerIndex]
-        dem = selectedLayer
-        #QgsRasterLayer().slopeAtPercent()
 
     def guardar_clicked(self):
         self.guardar = QtGui.QFileDialog.getSaveFileName(self.dlg, 'Guardar Archivo',".", "ShapeFile (*.shp)")
@@ -568,8 +390,6 @@ processing.runalg('qgis:extractbylocation', input, intersect, touches, overlaps,
         if outName:
             self.outShape.clear()
         self.outShape.insert(outPath)
-
-"""
 
 
 
